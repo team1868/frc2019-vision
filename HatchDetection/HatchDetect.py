@@ -75,6 +75,16 @@ while True:
 
   #print bound_rect[0]
   #print bound_rect[1]
+  if len(bound_rect) < 2:
+      plt.figure(0)
+      plt.imshow(orig, cmap = 'gray', interpolation = 'bicubic')
+      plt.xticks([]), plt.yticks([])
+
+      plt.figure(1)
+      plt.imshow(green_range, cmap='gray', interpolation='bicubic')
+      plt.xticks([]), plt.yticks([])
+      plt.show()
+      continue
 
   if bound_rect[0][0] < bound_rect[1][0]:
       left_cnt = 0
