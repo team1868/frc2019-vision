@@ -21,11 +21,15 @@ CLOSEST_DIST = 8 # inches
 #CAM_HEIGHT_OFFSET = 3#feet, INCORRECT VALUE
 #BOUNDING_REAL_HEIGHT = 5.7/12 #feet
 
+
 PIXEL_WIDTH = 1280
 PIXEL_HEIGHT = 720
 
 lower_green = np.array([LOWER_GREEN_HUE, LOWER_GREEN_SAT, LOWER_GREEN_VAL])
 upper_green = np.array([UPPER_GREEN_HUE, UPPER_GREEN_SAT, UPPER_GREEN_VAL])
+
+ASPECT_RATIO_MIN = 0.3636 - 0.1
+ASPECT_RATIO_MAX = 0.3636 + 0.1
 
 cap = cv2.VideoCapture(0)
 #change id above
@@ -54,6 +58,8 @@ while True:
   left_contour = None
   right_contour = None
 
+  
+
   for i in range(len(contours)):
   #  print contours[i]
     if cv2.contourArea(contours[i]) < MIN_AREA:
@@ -64,11 +70,18 @@ while True:
     bound_rect.append((x,y,w,h))
     cv2.rectangle(orig, (x,y), (x+w,y+h), color, 2)
     rect = cv2.minAreaRect(contours[i])
-    box = cv2.boxPoints(rect)
-    #print box
-    box = np.int0(box)
-    cv2.drawContours(orig, [contours[i]], 0, color, 2)
-    cv2.drawContours(orig, [box],0,color,2)
+    rect_center = rect[0]
+    rect_dim = rect[1]
+    rect_angle = rect[2]
+    aspectRatio = rect_dim[0]/rect_dim[1]
+    if ASPECT_RATIO_MIN < aspectRatio and aspectRatio < ASPECT_RATIO_MAX:
+      box = cv2.boxPoints(rect)
+      #print box
+      box = np.int0(box)
+      cv2.drawContours(orig, [contours[i]], 0, color, 2)
+      cv2.drawContours(orig, [box],0,color,2)
+      else: 
+        continue
 
   left_cnt = None
   right_cnt = None
