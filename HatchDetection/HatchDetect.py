@@ -4,7 +4,7 @@ import random
 import matplotlib.pyplot as plt
 import math
 
-print cv2.__version__
+print(cv2.__version__)
 #print cv2.getBuildInformation()
 
 LOWER_GREEN_HUE = 50 # gimp: 100
@@ -31,102 +31,117 @@ upper_green = np.array([UPPER_GREEN_HUE, UPPER_GREEN_SAT, UPPER_GREEN_VAL])
 ASPECT_RATIO_MIN = 0.3636 - 0.1
 ASPECT_RATIO_MAX = 0.3636 + 0.1
 
-cap = cv2.VideoCapture(0)
+
+#cap = cv2.VideoCapture(0)
 #change id above
 
+'''
 while True:
   ret,img = cap.read() #returns frame
 
   if ret is False:
-    print "hello, no image, trying again"
+    print("hello, no image, trying again")
     continue
-  #img = cv2.imread('hatch_5ft_3.jpg')
+   ''' 
+img = cv2.imread('hatch_5ft_3.jpg')
 
-  orig = img.copy()
-  hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+orig = img.copy()
+hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
-  green_range = cv2.inRange(hsv_img, lower_green, upper_green)
-  green_range = cv2.GaussianBlur(green_range, (9,9),2);
+green_range = cv2.inRange(hsv_img, lower_green, upper_green)
+green_range = cv2.GaussianBlur(green_range, (9,9),2);
 
-  im2, contours, hierarchy = cv2.findContours(green_range, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-  #print contours
+im2, contours, hierarchy = cv2.findContours(green_range, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+#print contours
+color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
+#cv2.drawContours(orig,contours, -1, color, 3)
+contours_poly = []
+bound_rect = []
+
+left_contour = None
+right_contour = None
+
+for i in range(len(contours)):
+  #if cv2.waitKey(0):
+  #  break
+  #print (contours[i])
+  if cv2.contourArea(contours[i]) < MIN_AREA:
+    continue
   color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
-  #cv2.drawContours(orig,contours, -1, color, 3)
-  contours_poly = []
-  bound_rect = []
+  contours_poly.append(cv2.approxPolyDP(contours[i], 3, True))
+  x,y,w,h = cv2.boundingRect(contours[i])
+  bound_rect.append((x,y,w,h))
+  cv2.rectangle(orig, (x,y),   (x+w,y+h), color, 2)
+  rect = cv2.minAreaRect(contours[i])
+  rect_center = rect[0]
+  rect_dim = rect[1]
+  rect_angle = rect[2]
+  #print (rect)
+  aspectRatio = rect_dim[0]/rect_dim[1]
+  if ASPECT_RATIO_MIN < aspectRatio and aspectRatio < ASPECT_RATIO_MAX:
+    box = cv2.boxPoints(rect)
+    #print box
+    box = np.int0(box)
+    cv2.drawContours(orig, [contours[i]], 0, color, 2)
+    cv2.drawContours(orig, [box],0,color,2)
+  else: 
+    continue
 
-  left_contour = None
-  right_contour = None
+left_cnt = None
+right_cnt = None
 
-  
+#print bound_rect[0]
+#print bound_rect[1]
+if len(bound_rect) < 2:
+  cv2.imshow('orig', orig)
+  '''
+  plt.figure(0)
+  plt.imshow(orig, cmap = 'gray', interpolation = 'bicubic')
+  plt.xticks([]), plt.yticks([])'''
 
-  for i in range(len(contours)):
-  #  print contours[i]
-    if cv2.contourArea(contours[i]) < MIN_AREA:
-      continue
-    color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
-    contours_poly.append(cv2.approxPolyDP(contours[i], 3, True))
-    x,y,w,h = cv2.boundingRect(contours[i])
-    bound_rect.append((x,y,w,h))
-    cv2.rectangle(orig, (x,y), (x+w,y+h), color, 2)
-    rect = cv2.minAreaRect(contours[i])
-    rect_center = rect[0]
-    rect_dim = rect[1]
-    rect_angle = rect[2]
-    aspectRatio = rect_dim[0]/rect_dim[1]
-    if ASPECT_RATIO_MIN < aspectRatio and aspectRatio < ASPECT_RATIO_MAX:
-      box = cv2.boxPoints(rect)
-      #print box
-      box = np.int0(box)
-      cv2.drawContours(orig, [contours[i]], 0, color, 2)
-      cv2.drawContours(orig, [box],0,color,2)
-      else: 
-        continue
+  #plt.figure(1)
+  #plt.imshow(green_range, cmap='gray', interpolation='bicubic')
+  cv2.imshow('green_range', green_range)
+  #plt.xticks([]), plt.yticks([])
+  #plt.show()
+  #continue
+elif bound_rect[0][0] < bound_rect[1][0]:
+  left_cnt = 0
+  right_cnt = 1
+else:
+  left_cnt = 1
+  right_cnt = 0
 
-  left_cnt = None
-  right_cnt = None
-
-  #print bound_rect[0]
-  #print bound_rect[1]
-  if len(bound_rect) < 2:
-      plt.figure(0)
-      plt.imshow(orig, cmap = 'gray', interpolation = 'bicubic')
-      plt.xticks([]), plt.yticks([])
-
-      plt.figure(1)
-      plt.imshow(green_range, cmap='gray', interpolation='bicubic')
-      plt.xticks([]), plt.yticks([])
-      plt.show()
-      continue
-
-  if bound_rect[0][0] < bound_rect[1][0]:
-      left_cnt = 0
-      right_cnt = 1
-  else:
-      left_cnt = 1
-      right_cnt = 0
-
+if len(bound_rect) >= 2:
   left_rightedge = bound_rect[left_cnt][0] + bound_rect[left_cnt][2]
   right_leftedge = bound_rect[right_cnt][0]
   center_of_target = (left_rightedge + right_leftedge)/2.0
   angle_to_center = math.atan((PIXEL_WIDTH/2.0 - center_of_target)/FOCAL_LENGTH) * 180.0/math.pi
 
-  print angle_to_center
+  #print(angle_to_center)
 
   pixel_closest_dist = right_leftedge - left_rightedge
   #print pixel_closest_dist
 
   distance = CLOSEST_DIST * FOCAL_LENGTH / pixel_closest_dist
-  print distance
+  #print(distance)
 
-  plt.figure(0)
-  plt.imshow(orig, cmap = 'gray', interpolation = 'bicubic')
-  plt.xticks([]), plt.yticks([])
+cv2.imshow('orig', orig)
+'''
+plt.figure(0)
+plt.imshow(orig, cmap = 'gray', interpolation = 'bicubic')
+plt.xticks([]), plt.yticks([]) '''
 
-  plt.figure(1)
-  plt.imshow(green_range, cmap='gray', interpolation='bicubic')
-  plt.xticks([]), plt.yticks([])
-  plt.show()
+#plt.figure(1)
+#plt.imshow(green_range, cmap='gray', interpolation='bicubic')
+cv2.imshow('green_range', green_range)
+#plt.xticks([]), plt.yticks([])
+#plt.show()
+
+cv2.destroyAllWindows
+
+
+
 
 '''
 angle = None #from center of screen,(+) if right
