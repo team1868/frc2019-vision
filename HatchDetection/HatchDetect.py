@@ -28,9 +28,15 @@ PIXEL_HEIGHT = 720
 lower_green = np.array([LOWER_GREEN_HUE, LOWER_GREEN_SAT, LOWER_GREEN_VAL])
 upper_green = np.array([UPPER_GREEN_HUE, UPPER_GREEN_SAT, UPPER_GREEN_VAL])
 
-ASPECT_RATIO_MIN = 0.3636 - 0.1
-ASPECT_RATIO_MAX = 0.3636 + 0.1
+ASPECT_RATIO_MIN = 0.3636 - 0.3
+ASPECT_RATIO_MAX = 0.3636 + 0.3
 
+class Boxes():
+  def __init__(self, boxes, angle):
+    self.boxes = boxes
+    self.angle = angle
+
+rotated_boxes = []
 
 #cap = cv2.VideoCapture(0)
 #change id above
@@ -49,7 +55,7 @@ orig = img.copy()
 hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
 green_range = cv2.inRange(hsv_img, lower_green, upper_green)
-green_range = cv2.GaussianBlur(green_range, (9,9),2);
+green_range = cv2.GaussianBlur(green_range, (9,9),2)
 
 im2, contours, hierarchy = cv2.findContours(green_range, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 #print contours
@@ -61,11 +67,15 @@ bound_rect = []
 left_contour = None
 right_contour = None
 
+print("before contour loop")
 for i in range(len(contours)):
+  print ("loop")
+  #print(i)
   #if cv2.waitKey(0):
   #  break
   #print (contours[i])
   if cv2.contourArea(contours[i]) < MIN_AREA:
+    print("hello")
     continue
   color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
   contours_poly.append(cv2.approxPolyDP(contours[i], 3, True))
@@ -76,16 +86,45 @@ for i in range(len(contours)):
   rect_center = rect[0]
   rect_dim = rect[1]
   rect_angle = rect[2]
-  #print (rect)
-  aspectRatio = rect_dim[0]/rect_dim[1]
+  print (rect)
+  if rect_angle < -45:
+    aspectRatio = rect_dim[1]/rect_dim[0]
+  else:
+    aspectRatio = rect_dim[0]/rect_dim[1]
+  print("before aspect ratio")
   if ASPECT_RATIO_MIN < aspectRatio and aspectRatio < ASPECT_RATIO_MAX:
+    print("yo")
+    print(i)
     box = cv2.boxPoints(rect)
+    targetBox = Boxes(box, rect_angle)
+    rotated_boxes.append(targetBox)
     #print box
     box = np.int0(box)
+    print("draw box")
     cv2.drawContours(orig, [contours[i]], 0, color, 2)
     cv2.drawContours(orig, [box],0,color,2)
   else: 
+    print ("huh")
     continue
+    
+'''
+if len(rotated_boxes) < 2:
+cv2.imshow('orig', orig)
+elif len(rotated_boxes) = 2:
+else:
+'''
+
+print ("whatup dude")
+
+print(len(rotated_boxes))
+for i in range(len(rotated_boxes)):
+  box1 = rotated_boxes[i]
+  box2 = rotated_boxes[i+1]
+  boxCoord = box1.boxes
+  topDiff = 
+  print("box")
+  print(box1.angle)
+  print(boxCoord)
 
 left_cnt = None
 right_cnt = None
@@ -93,6 +132,7 @@ right_cnt = None
 #print bound_rect[0]
 #print bound_rect[1]
 if len(bound_rect) < 2:
+  print ("hi")
   cv2.imshow('orig', orig)
   '''
   plt.figure(0)
@@ -106,11 +146,15 @@ if len(bound_rect) < 2:
   #plt.show()
   #continue
 elif bound_rect[0][0] < bound_rect[1][0]:
+  print ("lr1")
   left_cnt = 0
   right_cnt = 1
 else:
+  print("lr2")
   left_cnt = 1
   right_cnt = 0
+
+print("what is going on")
 
 if len(bound_rect) >= 2:
   left_rightedge = bound_rect[left_cnt][0] + bound_rect[left_cnt][2]
@@ -126,7 +170,7 @@ if len(bound_rect) >= 2:
   distance = CLOSEST_DIST * FOCAL_LENGTH / pixel_closest_dist
   #print(distance)
 
-cv2.imshow('orig', orig)
+#cv2.imshow('orig', orig)
 '''
 plt.figure(0)
 plt.imshow(orig, cmap = 'gray', interpolation = 'bicubic')
@@ -134,11 +178,14 @@ plt.xticks([]), plt.yticks([]) '''
 
 #plt.figure(1)
 #plt.imshow(green_range, cmap='gray', interpolation='bicubic')
+cv2.imshow('orig', orig)
 cv2.imshow('green_range', green_range)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
 #plt.xticks([]), plt.yticks([])
 #plt.show()
 
-cv2.destroyAllWindows
+#cv2.destroyAllWindows
 
 
 
