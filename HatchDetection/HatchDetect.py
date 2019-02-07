@@ -30,18 +30,19 @@ CENTER_Y = 360
 lower_green = np.array([LOWER_GREEN_HUE, LOWER_GREEN_SAT, LOWER_GREEN_VAL])
 upper_green = np.array([UPPER_GREEN_HUE, UPPER_GREEN_SAT, UPPER_GREEN_VAL])
 
-ANGLE_MIN_LEFT = None
-ANGLE_MAX_LEFT = None
-ANGLE_MIN_RIGHT = None
-ANGLE_MAX_RIGHT = None
+ANGLE_MIN_LEFT = -76.0
+ANGLE_MAX_LEFT = -73.0
+ANGLE_MIN_RIGHT = -16.0
+ANGLE_MAX_RIGHT = -13.0
 
 ASPECT_RATIO_MIN = 0.3636 - 0.3
 ASPECT_RATIO_MAX = 0.3636 + 0.3
 
 class Boxes():
-  def __init__(self, boxes, angle):
+  def __init__(self, boxes, angle, type):
     self.boxes = boxes
     self.angle = angle
+    self.type = type
 
 #def FilterAngle(angle):
 
@@ -85,7 +86,7 @@ for i in range(len(contours)):
   #  break
   #print (contours[i])
   if cv2.contourArea(contours[i]) < MIN_AREA:
-    print("hello")
+    #print("hello")
     continue
   color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
   contours_poly.append(cv2.approxPolyDP(contours[i], 3, True))
@@ -96,11 +97,16 @@ for i in range(len(contours)):
   rect_center = rect[0]
   rect_dim = rect[1]
   rect_angle = rect[2]
+  type = 0
   print (rect)
-  if rect_angle < -45:
+  if (ANGLE_MIN_LEFT < rect_angle < ANGLE_MAX_LEFT) :
+    #left rotated boxes
+    type = 1
     aspectRatio = rect_dim[1]/rect_dim[0]
-  elif rect_angle > -45:
-    aspectRatio = rect_dim[0]/rect_dim[1]
+  elif (ANGLE_MIN_RIGHT < rect_angle < ANGLE_MAX_RIGHT):
+     #right rotated boxes
+     type = 2
+     aspectRatio = rect_dim[0]/rect_dim[1]
   else:
     print("not rectangle")
     aspectRatio = 0
@@ -109,7 +115,7 @@ for i in range(len(contours)):
     #print("yo")
     print(i)
     box = cv2.boxPoints(rect)
-    targetBox = Boxes(box, rect_angle)
+    targetBox = Boxes(box, rect_angle, type)
     rotated_boxes.append(targetBox)
     #print box
     box = np.int0(box)
@@ -132,7 +138,7 @@ else:
 
 print ("whatup dude")
 
-'''
+
 print(len(rotated_boxes))
 for i in range(len(rotated_boxes)):
   print (i)
@@ -143,7 +149,7 @@ for i in range(len(rotated_boxes)):
   print("box")
   print(box1.angle)
   print(boxCoord)
-  '''
+  
 
 print(len(rotated_boxes))
 
@@ -189,11 +195,13 @@ if len(rotated_boxes) == 2:
   print ("this is a okay")
   
 
+  
 if len(bound_rect) >= 2:
   left_rightedge = bound_rect[left_cnt][0] + bound_rect[left_cnt][2]
   right_leftedge = bound_rect[right_cnt][0]
   center_of_target = (left_rightedge + right_leftedge)/2.0
   angle_to_center = math.atan((PIXEL_WIDTH/2.0 - center_of_target)/FOCAL_LENGTH) * 180.0/math.pi
+
 
   #print(angle_to_center)
 
