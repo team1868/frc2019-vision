@@ -24,9 +24,16 @@ CLOSEST_DIST = 8 # inches
 
 PIXEL_WIDTH = 1280
 PIXEL_HEIGHT = 720
+CENTER_X = 640
+CENTER_Y = 360
 
 lower_green = np.array([LOWER_GREEN_HUE, LOWER_GREEN_SAT, LOWER_GREEN_VAL])
 upper_green = np.array([UPPER_GREEN_HUE, UPPER_GREEN_SAT, UPPER_GREEN_VAL])
+
+ANGLE_MIN_LEFT = None
+ANGLE_MAX_LEFT = None
+ANGLE_MIN_RIGHT = None
+ANGLE_MAX_RIGHT = None
 
 ASPECT_RATIO_MIN = 0.3636 - 0.3
 ASPECT_RATIO_MAX = 0.3636 + 0.3
@@ -36,7 +43,10 @@ class Boxes():
     self.boxes = boxes
     self.angle = angle
 
+#def FilterAngle(angle):
+
 rotated_boxes = []
+box_centers = []
 
 #cap = cv2.VideoCapture(0)
 #change id above
@@ -53,17 +63,17 @@ img = cv2.imread('hatch_5ft_3.jpg')
 
 orig = img.copy()
 hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-
 green_range = cv2.inRange(hsv_img, lower_green, upper_green)
 green_range = cv2.GaussianBlur(green_range, (9,9),2)
 
-im2, contours, hierarchy = cv2.findContours(green_range, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-#print contours
+contours, hierarchy = cv2.findContours(green_range, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+#print(contours)
 color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
 #cv2.drawContours(orig,contours, -1, color, 3)
 contours_poly = []
 bound_rect = []
 
+                                                                                                                                                                                                                                                                                       
 left_contour = None
 right_contour = None
 
@@ -89,11 +99,14 @@ for i in range(len(contours)):
   print (rect)
   if rect_angle < -45:
     aspectRatio = rect_dim[1]/rect_dim[0]
-  else:
+  elif rect_angle > -45:
     aspectRatio = rect_dim[0]/rect_dim[1]
+  else:
+    print("not rectangle")
+    aspectRatio = 0
   print("before aspect ratio")
   if ASPECT_RATIO_MIN < aspectRatio and aspectRatio < ASPECT_RATIO_MAX:
-    print("yo")
+    #print("yo")
     print(i)
     box = cv2.boxPoints(rect)
     targetBox = Boxes(box, rect_angle)
@@ -108,31 +121,47 @@ for i in range(len(contours)):
     continue
     
 '''
+#check number of rotated boxes
 if len(rotated_boxes) < 2:
 cv2.imshow('orig', orig)
 elif len(rotated_boxes) = 2:
+  #calculate values for the pair
 else:
+  #more than 2, find correct pair
 '''
 
 print ("whatup dude")
 
+'''
 print(len(rotated_boxes))
 for i in range(len(rotated_boxes)):
-  box1 = rotated_boxes[i]
-  box2 = rotated_boxes[i+1]
+  print (i)
+  box1 = rotated_boxes[i] #left box
+  #box2 = rotated_boxes[i] #rightbox
   boxCoord = box1.boxes
-  topDiff = 
+  # topDiff = 
   print("box")
   print(box1.angle)
   print(boxCoord)
+  '''
+
+print(len(rotated_boxes))
+
+for i in range(len(rotated_boxes)):
+ #if ANGLE_MIN_LEFT < angle < ANGLE_MIN_RIGHT:
+
+ print (rotated_boxes[i].angle)
+ #print rotated_boxes[i]
+ print("box")
+
 
 left_cnt = None
 right_cnt = None
 
 #print bound_rect[0]
 #print bound_rect[1]
-if len(bound_rect) < 2:
-  print ("hi")
+if len(rotated_boxes) < 2:
+  print ("bro, there aren't enough rotated boxes, please try again")
   cv2.imshow('orig', orig)
   '''
   plt.figure(0)
@@ -155,6 +184,10 @@ else:
   right_cnt = 0
 
 print("what is going on")
+
+if len(rotated_boxes) == 2:
+  print ("this is a okay")
+  
 
 if len(bound_rect) >= 2:
   left_rightedge = bound_rect[left_cnt][0] + bound_rect[left_cnt][2]
