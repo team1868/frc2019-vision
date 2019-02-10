@@ -31,10 +31,6 @@ CENTER_Y = 360
 lower_green = np.array([LOWER_GREEN_HUE, LOWER_GREEN_SAT, LOWER_GREEN_VAL])
 upper_green = np.array([UPPER_GREEN_HUE, UPPER_GREEN_SAT, UPPER_GREEN_VAL])
 
-ANGLE_MIN_LEFT = -76.0
-ANGLE_MAX_LEFT = -73.0
-ANGLE_MIN_RIGHT = -16.0
-ANGLE_MAX_RIGHT = -13.0
 
 ASPECT_RATIO_MIN = 0.3636 - 0.3
 ASPECT_RATIO_MAX = 0.3636 + 0.3
@@ -46,14 +42,12 @@ class Boxes():
     self.type = type
 
 #def FilterAngle(angle):
-
 rotated_boxes = []
 box_centers = []
 pairs = []
 
 #cap = cv2.VideoCapture(0)
 #change id above
-
 '''
 while True:
   ret,img = cap.read() #returns frame
@@ -62,7 +56,7 @@ while True:
     print("hello, no image, trying again")
     continue
    ''' 
-img = cv2.imread('2019-02-09-152607.jpg')
+img = cv2.imread('edited164751.jpg')
 
 orig = img.copy()
 hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -130,8 +124,6 @@ for i in range(len(contours)):
     continue
     
 
-
-
 print(len(rotated_boxes))
 for i in range(len(rotated_boxes)):
   print (i)
@@ -140,7 +132,7 @@ for i in range(len(rotated_boxes)):
   print("box")
   print(box1.angle)
   print(boxCoord)
-  
+
 
 print(len(rotated_boxes))
 
@@ -151,17 +143,6 @@ for i in range(len(rotated_boxes)):
 
 left_cnt = None
 right_cnt = None
-
-'''
-#check number of rotated boxes
-if len(rotated_boxes) < 2:
-cv2.imshow('orig', orig)
-elif len(rotated_boxes) = 2:
-  #calculate values for the pair
-else:
-  #more than 2, find correct pair
-'''
-
 
 if len(rotated_boxes) < 2:
   print("bro, there aren't enough rotated boxes, please try again")
@@ -179,35 +160,70 @@ if len(rotated_boxes) < 2:
   plt.show()
   continue
   '''
-
-
+temporary = 0.00
+distance_from_center = 15000.0
+center_of_target = 0.00
 if len(rotated_boxes) == 2:
   print("got 2")
   print(rotated_boxes[0].boxes[0][0])
   print(rotated_boxes[1].boxes[0][0])
-  if (rotated_boxes[1].boxes[0][0] < rotated_boxes[0].boxes[0][0]) and (rotated_boxes[0].angle > (rotated_boxes[1].angle)):
+  if (rotated_boxes[1].boxes[0][0] < rotated_boxes[0].boxes[0][0]) and (rotated_boxes[0].angle > rotated_boxes[1].angle):
+    #read right to left
     print("'tis a pair'")
-    # TODO: maybe make it back up and run through again hatchdetect again
+    temporary = (rotated_boxes[0].boxes[1][0] + rotated_boxes[1].boxes[3][0])/2
+    if (abs(distance_from_center) > abs(640 - temporary)):
+      distance_from_center = temporary - 640
+  elif (rotated_boxes[1].boxes[0][0] > rotated_boxes[0].boxes[0][0]) and (rotated_boxes[0].angle < rotated_boxes[1].angle):
+    #read left to right
+    print("'tis a pair")
+    temporary = (rotated_boxes[0].boxes[3][0] + rotated_boxes[1].boxes[1][0])/2
+    if (abs(distance_from_center) > abs(640 - temporary)):
+      distance_from_center = temporary - 640
   else:
     print("sorry, it ain't a pair")
+    # TODO: maybe make it back up and run through again hatchdetect again
 
-number_of_pairs = 0
-
+which_box = 0
 if len(rotated_boxes) > 2:
   print("excess boxes brotha")
+  print(rotated_boxes[0].boxes[0][0])
   for i in range(len(rotated_boxes)-1):
-    if (rotated_boxes[i+1].boxes[0][0] < rotated_boxes[i].boxes[0][0]) and (rotated_boxes[i].angle > (rotated_boxes[i+1].angle)):
+    print(rotated_boxes[i+1].boxes[0][0])
+    if (rotated_boxes[i+1].boxes[0][0] < rotated_boxes[i].boxes[0][0]) and (rotated_boxes[i].angle > rotated_boxes[i+1].angle):
+      #read right to left
+      temporary = (rotated_boxes[i].boxes[1][0] + rotated_boxes[i+1].boxes[3][0])/2
+      #print("yo")
+      print(temporary)
+      if (abs(distance_from_center) > abs(640 - temporary)):
+        #print("stop")
+        distance_from_center = temporary - 640
+        print(distance_from_center)
+        which_box = i
       print("yes")
+    elif (rotated_boxes[i+1].boxes[0][0] > rotated_boxes[i].boxes[0][0]) and (rotated_boxes[i].angle < rotated_boxes[i+1].angle):
+      #read left to right
+      temporary = (rotated_boxes[i].boxes[3][0] + rotated_boxes[i+1].boxes[1][0])/2
+      #print("yo")
+      print(temporary)
+      if (abs(distance_from_center) > abs(640 - temporary)):
+        #print("stop")
+        distance_from_center = temporary - 640
+        print(distance_from_center)
+        which_box = i
+      print("yes")
+    else:
+      print("nah man")
+#print(rotated_boxes[which_box].boxes[0][0])
+#print(rotated_boxes[which_box + 1].boxes[0][0])
+
+center_of_target = distance_from_center + 640
+print(center_of_target)
+angle_to_center = (math.atan((PIXEL_WIDTH/2.0 - center_of_target)/FOCAL_LENGTH) * 180.0/math.pi)*-1
+print(angle_to_center)
+
       #change above so works for four and correct angle orders
       #pairs[0][0]=[i][i+1]
 
-'''
-box1 = rotated_boxes[i]
-  boxCoord = box1.boxes 
-  print("box")
-  print(box1.angle)
-  print(boxCoord)
-  '''
   
 
 '''
