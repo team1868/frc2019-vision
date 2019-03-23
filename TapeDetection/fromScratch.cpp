@@ -38,6 +38,10 @@ static const double TAPE_HEIGHT = 5; //inches
 static const double BETWEEN_TAPES_DIST = 9.25; //inches
 static const double CAM_HEIGHT_OFFSET = 0; //TODO WRONG //47/12.0 approximately
 
+static const double CAM_FOCAL_WIDTH = 11.0; //actual width of tape pair when at 15 inches away
+static const double CAM_FOCAL_DIST = 15.0; //at this distance the tape pair is in full view
+static const double DEGREES_TO_INCHES = CAM_FOCAL_WIDTH/CAM_RES_WIDTH; //APPROX 0.034375
+
 static const int LOWER_GREEN_HUE = 50;
 static const int LOWER_GREEN_SAT = 60;
 static const int LOWER_GREEN_VAL = 60;
@@ -128,7 +132,7 @@ void findRectangles(cv::Mat greenMat, std::vector<std::vector<cv::Point>> &conto
 
      	if ( (temp.angle > -45.0 && (aspectRatio < MIN_ASPECT_RATIO || aspectRatio > MAX_ASPECT_RATIO)) || 
      	    (temp.angle < -45.0 && (1.0/aspectRatio < MIN_ASPECT_RATIO || 1.0/aspectRatio > MAX_ASPECT_RATIO)) ){
-     	    std::cout << "ded ratio: " << aspectRatio << std::endl;
+     	    //std::cout << "ded ratio: " << aspectRatio << std::endl;
 	        continue;
 	    }
         rotatedRects.push_back(temp);
@@ -140,7 +144,7 @@ void drawRotatedRects(cv::Mat &frame, std::vector<cv::RotatedRect> rotatedRects)
 	    cv::Scalar color = cv::Scalar(rng.uniform(0,255), rng.uniform(0,255), rng.uniform(0,255));
 	    cv::Point2f rectPoints[4];
 	    rotatedRects[i].points(rectPoints);
-	    std::cout << "hi" << std::endl;
+	    //std::cout << "hi" << std::endl;
 	    for (int j = 0; j < 4; j++) {
 	       line(frame, rectPoints[j], rectPoints[(j+1)%4], color,1,8);
 	    }
@@ -167,8 +171,8 @@ bool findPairs(std::vector<cv::RotatedRect> rotatedRects, std::vector<std::pair<
 	    //if(rotatedRects[i].angle < -45.0) leftAngle = -leftAngle - 90;
 	    //if(rotatedRects[i+1].angle < -45.0) rightAngle = -rightAngle - 90;
 	    if (leftAngle >= LEFT_MIN_ANGLE && leftAngle <= LEFT_MAX_ANGLE && rightAngle >= RIGHT_MIN_ANGLE && rightAngle <= RIGHT_MAX_ANGLE) {
-	    std::cout << "left angle of a pair: " << leftAngle << "right angle of a pair: " << rightAngle << std::endl;
-		std::cout << "left min " << LEFT_MIN_ANGLE << " left max " << LEFT_MAX_ANGLE << " right min " << RIGHT_MIN_ANGLE << " right max " << RIGHT_MAX_ANGLE << std::endl;
+	    //std::cout << "left angle of a pair: " << leftAngle << "right angle of a pair: " << rightAngle << std::endl;
+		//std::cout << "left min " << LEFT_MIN_ANGLE << " left max " << LEFT_MAX_ANGLE << " right min " << RIGHT_MIN_ANGLE << " right max " << RIGHT_MAX_ANGLE << std::endl;
 	        std::pair <cv::RotatedRect, cv::RotatedRect> temp (rotatedRects[i], rotatedRects[i+1]);
 	        pairs.push_back(temp);
 	        i += 1; // not necessary but skips processsing right again
@@ -197,7 +201,7 @@ void findThePair(std::vector<std::pair<cv::RotatedRect, cv::RotatedRect> > pairs
 	        best = pairs[i];
 	    }
     }
-    std::cout << " best distance: " << bestDist << std::endl;
+    //std::cout << " best distance: " << bestDist << std::endl;
     //pair = best;
 }
 
@@ -214,16 +218,18 @@ double calculateDistance(/*int tapeWidth, int tapeHeight,*/ int tapeBetweenDist)
     return sqrt(rawDistance*rawDistance - CAM_HEIGHT_OFFSET*CAM_HEIGHT_OFFSET);
 }
 
+double distanceToTapes(double deltax) {
+    double scalefactor = deltax*DEGREES_TO_INCHES/CAM_FOCAL_WIDTH;
+    return CAM_FOCAL_DIST/scalefactor;
+}
 
 int main(int argc, char **argv){
     std::string lifecam (argv[1]);
     bool show_desired = false;
-    if (argc==2){
+    if (argc>2){
        show_desired = true;
     }
-    std::cout << lifecam << std::endl;
     int LIFECAM = lifecam[lifecam.length()-1]-'0';
-    std::cout << LIFECAM << std::endl;
     cv::VideoCapture cap = init(LIFECAM);
     
     cv::Mat cpuGreenMat; //frame = NULL
@@ -280,19 +286,23 @@ int main(int argc, char **argv){
 	    drawRotatedRects(cpuMat, rotatedRects);
 	    std::sort(rotatedRects.begin(), rotatedRects.end(), compareRect);
 	    hasRects = findPairs(rotatedRects, pairs);
-	    std::cout << hasRects << std::endl;
+	    //std::cout << hasRects << std::endl;
 	    if(hasRects){
 	        findThePair(pairs, centerPair);
             centerPair.first.points(pairLeftPts);
             centerPair.second.points(pairRightPts);
-            std::cout << "greetings: " << pairLeftPts[0].x << std::endl;
+            //std::cout << "greetings: " << pairLeftPts[0].x << std::endl;
             centerX = ((double) pairLeftPts[0].x + pairLeftPts[1].x+pairLeftPts[2].x+pairLeftPts[3].x+
                        pairRightPts[0].x+pairRightPts[1].x+pairRightPts[2].x+pairRightPts[3].x) /8.0;
                       
-            std::cout << "centerX "<<centerX<<" Angle: " << calculateAngle(centerX) << " Distance: " <<  calculateDistance((pairRightPts[0].x+pairRightPts[1].x+pairRightPts[2].x+pairRightPts[3].x)/4.0 - (pairLeftPts[0].x + pairLeftPts[1].x+pairLeftPts[2].x+pairLeftPts[3].x)/4.0) << std::endl; 
+            std::cout << "centerX "<<centerX<< " Angle: " << calculateAngle(centerX) << std::endl;
+            //" Distance: " <<  calculateDistance((pairRightPts[0].x+pairRightPts[1].x+pairRightPts[2].x+pairRightPts[3].x)/4.0 - (pairLeftPts[0].x + pairLeftPts[1].x+pairLeftPts[2].x+pairLeftPts[3].x)/4.0) << std::endl; 
             
-            
-            std::string message = std::to_string(calculateAngle(centerX));
+            double deltax = pairRightPts[3].x - pairLeftPts[1].x;
+            std::cout << "distance: " << distanceToTapes(deltax) << std::endl;
+            std::string gap = " ";
+            std::string message = std::to_string(calculateAngle(centerX)) + gap + std::to_string(distanceToTapes(deltax));
+            std::cout << message << std::endl;
             zmq_send(publisher, &message, sizeof(message), 0);
             
             
@@ -301,13 +311,14 @@ int main(int argc, char **argv){
             //calculateDistance(pairRightPts[2].x-pairRightPts[1].x, pairRightPts[0].y-pairRightPts[1].y) //width/height
 
 	    }         
-	if (show_desired){    
+	    if (show_desired){    
            imshow("original image", cpuMat); //must be cpu mat to imshow
            imshow("green mask", greenMat);
-        }  
-        //char c=(char)cv::waitKey(25);
-        //if (c==27)
-        //    break;
+ 
+           char c=(char)cv::waitKey(25);
+           if (c==27) break;
+        }
+     
     }
     cap.release();
     //cv::destroyAllWindows();
