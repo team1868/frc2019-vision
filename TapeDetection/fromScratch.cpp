@@ -248,7 +248,7 @@ int main(int argc, char **argv){
 	
     zmq::context_t context(1);
     zmq::socket_t publisher(context, ZMQ_PUB);
-    publisher.bind("tcp://*:1188"); //5808");
+    publisher.bind("tcp://*:1188"); //1188");
 	int confl = 1;
 	publisher.setsockopt(ZMQ_CONFLATE, &confl, sizeof(confl));	
     

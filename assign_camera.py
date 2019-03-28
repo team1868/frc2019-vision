@@ -1,8 +1,11 @@
 import os
 import glob
+import time
+time.sleep(5)
 
 path = '/tmp/caminfo/'
-
+os.system("ifdown eth0")
+os.system("ifup eth0")
 os.system("sudo ./jetson_clocks.sh")
 
 #clearing camera bandwidth
@@ -35,10 +38,11 @@ cameras = glob.glob("/dev/video*")
 print(cameras)
 cameras.remove(LIFECAM)
 print(cameras)
-
-#configuring lifecam settings
-os.system("v4l2-ctl -d " + LIFECAM + " -c exposure_auto=1 -c exposure_absolute=1")
-os.system("v4l2-ctl -d " + LIFECAM + " -c white_balance_temperature_auto=0")
+if LIFECAM is not None:
+   #configuring lifecam settings
+   os.system("v4l2-ctl -d " + LIFECAM + " -c exposure_auto=1 -c exposure_absolute=1")
+   os.system("v4l2-ctl -d " + LIFECAM + " -c white_balance_temperature_auto=0")
+   os.system("/home/nvidia/Desktop/TapeAgain/tapeDetection " + LIFECAM + "&") #+ " > /var/log/tapedetect.txt 2>&1")
 
 #os.system(
 #    "gst-launch-1.0 v4l2src device=/dev/" + LIFECAM +" ! nvvidconv flip-method=0 \
@@ -54,5 +58,3 @@ port = 1181#5801
 for cam in cameras: 
    os.system("gst-launch-1.0 v4l2src device=" + cam +" ! nvvidconv flip-method=0 ! 'video/x-raw(memory:NVMM),width=320,height=240' ! omxh264enc control-rate=2 bitrate=1000000 ! 'video/x-h264, stream-format=(string)byte-stream'  ! h264parse ! rtph264pay mtu=1400 ! udpsink host=10.18.68.5 port=" +str(port) +" sync=false async=false &")
    port += 1
-print(LIFECAM)
-os.system("/home/nvidia/Desktop/TapeAgain/tapeDetection " + LIFECAM+ " > /var/log/tapedetect.txt 2>&1")
