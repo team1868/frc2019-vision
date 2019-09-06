@@ -124,12 +124,12 @@ void findRectangles(cv::Mat greenMat, std::vector<std::vector<cv::Point>> &conto
 	    //std::cout << "Width: " << realWidth << "      Height: " << realHeight << std::endl;
 	    //std::cout << "ratio: " << aspectRatio << "Angle: " << temp.angle << std::endl;
 
-     	if ( (temp.angle > -45.0 && (aspectRatio < MIN_ASPECT_RATIO || aspectRatio > MAX_ASPECT_RATIO)) || 
+     	    if ( (temp.angle > -45.0 && (aspectRatio < MIN_ASPECT_RATIO || aspectRatio > MAX_ASPECT_RATIO)) || 
      	    (temp.angle < -45.0 && (1.0/aspectRatio < MIN_ASPECT_RATIO || 1.0/aspectRatio > MAX_ASPECT_RATIO)) ){
      	    //std::cout << "ded ratio: " << aspectRatio << std::endl;
 	        continue;
 	    }
-        rotatedRects.push_back(temp);
+            rotatedRects.push_back(temp);
     }
 }
 
