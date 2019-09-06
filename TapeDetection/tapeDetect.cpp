@@ -1,5 +1,3 @@
-//TODO: add include files
-
 #include <opencv2/videoio.hpp>
 
 //misc includes
@@ -32,11 +30,11 @@
 static const int CAM_RES_WIDTH = 320;
 static const int CAM_RES_HEIGHT = 240;
 static const double CAM_ANGLE = 54.0; //degrees
-static const double CAM_FOCAL_LEN = 1170.0; //TODO figure this out, is too largy
+static const double CAM_FOCAL_LEN = 1170.0; 
 static const double TAPE_WIDTH = 2; //inches
 static const double TAPE_HEIGHT = 5; //inches
 static const double BETWEEN_TAPES_DIST = 9.25; //inches
-static const double CAM_HEIGHT_OFFSET = 0; //TODO WRONG //47/12.0 approximately
+static const double CAM_HEIGHT_OFFSET = 0; 
 
 static const double CAM_FOCAL_WIDTH = 11.0; //actual width of tape pair when at 15 inches away
 static const double CAM_FOCAL_DIST = 15.0; //at this distance the tape pair is in full view
@@ -49,7 +47,7 @@ static const int UPPER_GREEN_HUE = 80;
 static const int UPPER_GREEN_SAT = 255;
 static const int UPPER_GREEN_VAL = 255;
 
-// TODO: TUNE ALL OF THE BELOW
+
 static const int MIN_AREA = 100;
 static const double MIN_ASPECT_RATIO = 0.357 - 0.2;//0.15;
 static const double MAX_ASPECT_RATIO = 0.357 + 0.2;
@@ -66,16 +64,11 @@ cv::RNG rng(12345);
 #define DEFAULT_CAMERA 1
 #define PI 3.141592653589
 
+
+//open camera and check if opened
 cv::VideoCapture init(int camera_id){
     cv::VideoCapture cap(camera_id);
-    //std::string command = std::string("v4l2-ctl -d /dev/video") + std::to_string(camera_id) + std::string(" -c exposure_auto=1 -c exposure_absolute=5 -c brightness=30"); //TODO outted for assigncamera
-    //system(command.c_str()); //TODO to
-//    std::string command = std::string("v4l2-ctl --set-fmt-video=width=") + std::to_string(CAM_RES_WIDTH) +
-  //                                    ",height=" + std::to_string(CAM_RES_HEIGHT)+",pixelformat=YUYV";
-    //std::string exposureCommand = std::string("v4l2-ctl -d /dev/video") + std::to_string(DEFAULT_CAMERA) + " -c exposure_auto=0 -c exposure_absolute=1 -c white_balance_temperature_auto=0";
-   // std::cout << command << std::endl << exposureCommand << std::endl;
-    //system(command.c_str());
-    //system(exposureCommand.c_str());
+    
     while(!cap.isOpened()){
         std::cout << "opening camera..." << std::endl;
         cap.open(camera_id);
@@ -83,14 +76,16 @@ cv::VideoCapture init(int camera_id){
     return cap;
 }
 
+//put captured frame into GPUMat
 void readToGPUMat(cv::VideoCapture cap, cv::cuda::GpuMat &outMat){
     cv::Mat frame;
     cap.read(frame);
-    //cv::resize(frame, frame, cvSize(320, 240), (1.0/3), (1.0/3), 3); //NOTE: values probably wrong (except 1-3 params)
+    //cv::resize(frame, frame, cvSize(320, 240), (1.0/3), (1.0/3), 3);
     //cv::cuda::GpuMat gpumat;
     outMat.upload(frame); //about 1ms
 }
 
+//detect green color, cut out all other colors
 void filterGreen(cv::cuda::GpuMat hsvMat, cv::cuda::GpuMat &outMat) {
     cv::cuda::GpuMat temp;
 
@@ -107,10 +102,9 @@ void filterGreen(cv::cuda::GpuMat hsvMat, cv::cuda::GpuMat &outMat) {
     cv::cuda::bitwise_and(temp, thresc[2], outMat);
 }
 
-//TODO
-//draw rotated rects, match pairs, select pair, TEST, angle/distance
+
+//uses contours using aspect ratio to find the rectangle shapes (tapes)
 void findRectangles(cv::Mat greenMat, std::vector<std::vector<cv::Point>> &contours, std::vector<cv::Vec4i> &hierarchy, std::vector<cv::RotatedRect> &rotatedRects){
-    //possible error: greenMat not black and white? check filterGreen()
     cv::findContours(greenMat, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE, cv::Point(0, 0)); //TODO Check
     for(int i = 0; i<contours.size(); i++){
         //std::cout << "checking some contour " << std::endl;
@@ -139,6 +133,7 @@ void findRectangles(cv::Mat greenMat, std::vector<std::vector<cv::Point>> &conto
     }
 }
 
+//computer draws on the rectangles that it sees (for tuning)
 void drawRotatedRects(cv::Mat &frame, std::vector<cv::RotatedRect> rotatedRects){
     for (int i = 0; i < rotatedRects.size(); i++) {
 	    cv::Scalar color = cv::Scalar(rng.uniform(0,255), rng.uniform(0,255), rng.uniform(0,255));
@@ -151,6 +146,7 @@ void drawRotatedRects(cv::Mat &frame, std::vector<cv::RotatedRect> rotatedRects)
     }
 }
 
+//make sure the left rectangle is actually on the left (correctly paired)
 bool compareRect(cv::RotatedRect r1, cv::RotatedRect r2) {	// returns true if r1 is lefter than r2
     cv::Point2f pts1[4];
     cv::Point2f pts2[4];
@@ -159,6 +155,7 @@ bool compareRect(cv::RotatedRect r1, cv::RotatedRect r2) {	// returns true if r1
     return pts1[0].x+pts1[1].x+pts1[2].x+pts1[3].x < pts2[0].x+pts2[1].x+pts2[2].x+pts2[3].x;
 }
 
+//make sure your two rectangles are a pair
 bool findPairs(std::vector<cv::RotatedRect> rotatedRects, std::vector<std::pair<cv::RotatedRect, cv::RotatedRect> > &pairs) {
     if(rotatedRects.size() < 2) return false;
     for (int i = 0; i < rotatedRects.size() - 1; i++) {
@@ -175,7 +172,7 @@ bool findPairs(std::vector<cv::RotatedRect> rotatedRects, std::vector<std::pair<
 		//std::cout << "left min " << LEFT_MIN_ANGLE << " left max " << LEFT_MAX_ANGLE << " right min " << RIGHT_MIN_ANGLE << " right max " << RIGHT_MAX_ANGLE << std::endl;
 	        std::pair <cv::RotatedRect, cv::RotatedRect> temp (rotatedRects[i], rotatedRects[i+1]);
 	        pairs.push_back(temp);
-	        i += 1; // not necessary but skips processsing right again
+	        i += 1; // not necessary but skips processing right rectangle again
 	    }
     }
     if (pairs.size() < 1) {
@@ -183,6 +180,7 @@ bool findPairs(std::vector<cv::RotatedRect> rotatedRects, std::vector<std::pair<
     }
     return true;
 }
+
 
 void findThePair(std::vector<std::pair<cv::RotatedRect, cv::RotatedRect> > pairs, std::pair<cv::RotatedRect, cv::RotatedRect> &best){//pair) {
     double bestDist = CAM_RES_WIDTH;
@@ -237,43 +235,42 @@ int main(int argc, char **argv){
     cv::cuda::GpuMat hsvGpuMat;
     cv::Mat cpuMat;
     cv::Mat hsvMat, greenMat;
-    // above all had NULLs... was giving errors tho :(
     cap.set(CV_CAP_PROP_FRAME_WIDTH, CAM_RES_WIDTH);
     cap.set(CV_CAP_PROP_FRAME_HEIGHT, CAM_RES_HEIGHT);
     
-	cv::Point2f pairLeftPts[4];
-	cv::Point2f pairRightPts[4];
+    cv::Point2f pairLeftPts[4];
+    cv::Point2f pairRightPts[4];
 	double centerX;
 	//double angle, distance;
 	
+	//initialize zmq
     zmq::context_t context(1);
     zmq::socket_t publisher(context, ZMQ_PUB);
-    publisher.bind("tcp://*:1188"); //1188");
+    publisher.bind("tcp://*:1188");
 	int confl = 1;
 	publisher.setsockopt(ZMQ_CONFLATE, &confl, sizeof(confl));	
     
     bool hasRects;
    
     while(true){
+		//look for tapes
 	    std::vector<std::vector<cv::Point>> contours;
 	    std::vector<cv::Vec4i> hierarchy;
 	    std::vector<cv::RotatedRect> rotatedRects;
 	    std::vector<std::pair<cv::RotatedRect, cv::RotatedRect> > pairs;
 	    std::pair<cv::RotatedRect, cv::RotatedRect> centerPair;
-	    
-	    /*readToGPUMat(cap, gpuMat);
-            if(gpuMat.empty()) continue; // TODO: check lol*/
             
 	    cap >> cpuMat;
         if (cpuMat.empty()) continue;
         //gpuMat.download()
         //cv::cuda::cvtColor(gpuMat, hsvGpuMat, cv::COLOR_BGR2HSV);
-           
+          
+		//filter colors
 	    cv::cvtColor(cpuMat, hsvMat, cv::COLOR_BGR2HSV);
         cv::inRange(hsvMat, cv::Scalar(LOWER_GREEN_HUE, LOWER_GREEN_SAT, LOWER_GREEN_VAL), cv::Scalar(UPPER_GREEN_HUE,UPPER_GREEN_SAT,UPPER_GREEN_VAL), greenMat);
         //filterGreen(hsvGpuMat, gpuGreenMat);
-    //  gpuGreenMat.download(cpuGreenMat);
-    //  cpuGreenMat = gpuGreenMat; //gpu->cpu, find contours not faster in gpu and cuda does not have equiv
+        //gpuGreenMat.download(cpuGreenMat);
+        //cpuGreenMat = gpuGreenMat; //gpu->cpu, find contours not faster in gpu and cuda does not have equiv
 	
 	    //cv::GaussianBlur(greenMat, greenMat, cv::Size(7,7), 2, 2);
         findRectangles(greenMat, contours, hierarchy, rotatedRects);
@@ -298,16 +295,18 @@ int main(int argc, char **argv){
             std::cout << "centerX "<<centerX<< " Angle: " << calculateAngle(centerX) << std::endl;
             //" Distance: " <<  calculateDistance((pairRightPts[0].x+pairRightPts[1].x+pairRightPts[2].x+pairRightPts[3].x)/4.0 - (pairLeftPts[0].x + pairLeftPts[1].x+pairLeftPts[2].x+pairLeftPts[3].x)/4.0) << std::endl; 
             
+			
             double deltax = pairRightPts[3].x - pairLeftPts[1].x;
             std::cout << "distance: " << distanceToTapes(deltax) << std::endl;
             std::string gap = " ";
             std::string message = std::to_string(calculateAngle(centerX)) + gap + std::to_string(distanceToTapes(deltax));
             std::cout << message << std::endl;
+			
+			//found tape pair, send through zmq to robot
             zmq_send(publisher, &message, sizeof(message), 0);
             
             
-            //TODO SKETCH, calculating distance based on right tape??
-            //calculateDistance((pairRightPts[0].x+pairRightPts[1].x+pairRightPts[2].x+pairRightPts[3].x)/4.0 - (pairLeftPts[0].x + pairLeftPts[1].x+pairLeftPts[2].x+pairLeftPts[3].x)/4.0
+			//calculateDistance((pairRightPts[0].x+pairRightPts[1].x+pairRightPts[2].x+pairRightPts[3].x)/4.0 - (pairLeftPts[0].x + pairLeftPts[1].x+pairLeftPts[2].x+pairLeftPts[3].x)/4.0
             //calculateDistance(pairRightPts[2].x-pairRightPts[1].x, pairRightPts[0].y-pairRightPts[1].y) //width/height
 
 	    }         
