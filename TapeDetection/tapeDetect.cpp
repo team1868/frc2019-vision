@@ -303,7 +303,7 @@ int main(int argc, char **argv){
             std::cout << message << std::endl;
 			
 			//found tape pair, send through zmq to robot
-            zmq_send(publisher, &message, sizeof(message), 0);
+            zmq_send(publisher, message, sizeof(message), 0);
             
             
 			//calculateDistance((pairRightPts[0].x+pairRightPts[1].x+pairRightPts[2].x+pairRightPts[3].x)/4.0 - (pairLeftPts[0].x + pairLeftPts[1].x+pairLeftPts[2].x+pairLeftPts[3].x)/4.0
